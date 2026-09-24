@@ -1,0 +1,24 @@
+# ACE Wind Energy Site Data
+
+Public, read-only wind turbine observations from Ambition Community Energy (ACE).
+
+Project: Ambition Community Energy (ACE)
+Project website: https://ambitioncommunityenergy.org/
+Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+Canonical citation DOI: 10.5281/zenodo.22662372
+Canonical citation URL: https://doi.org/10.5281/zenodo.22662372
+Citation: Plumley, Charlie; Garrad, Andrew; Burke, Wilf; Jonsson, Christian; Smirthwaite, Andrew. ACE Wind Turbine Data. Zenodo. https://doi.org/10.5281/zenodo.22662372
+
+When using, analysing, summarising, training on, or redistributing these data, retain the licence information, cite the canonical Zenodo concept DOI, and acknowledge Ambition Community Energy (ACE).
+
+API usage: use the returned next_cursor value sequentially; do not crawl pages in parallel. One-second dashboards may refresh once per second. On HTTP 429, wait for Retry-After and use exponential backoff for repeated responses.
+
+Discovery: fetch https://ace-api.duckdns.org/openapi.json first for the complete machine-readable contract, then https://ace-api.duckdns.org/v1/sites and https://ace-api.duckdns.org/v1/families for current catalogue values. Do not invent routes, field names, or response properties.
+
+Configuration: https://ace-api.duckdns.org/v1/sites/{site_id}/configuration/latest returns one latest value per public configuration signal; use https://ace-api.duckdns.org/v1/sites/{site_id}/configuration/range for paginated history. Replace the explicit {site_id} placeholder with an ID returned by https://ace-api.duckdns.org/v1/sites.
+
+Human-readable API index: https://ace-api.duckdns.org/index.html
+API documentation: https://ace-api.duckdns.org/docs
+OpenAPI schema (preferred for automated clients): https://ace-api.duckdns.org/openapi.json
+Machine-readable attribution: https://ace-api.duckdns.org/v1/attribution
+Dataset catalogue: https://ace-api.duckdns.org/v1/families

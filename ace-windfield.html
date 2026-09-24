@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windfield — the ACE turbine, right now</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #F7F1E7;
+    --ink-dim: rgba(247,241,231,.66);
+    --bg: #0F141B;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Atkinson Hyperlegible", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  canvas#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .vignette {
+    position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(6,9,14,.55) 100%),
+      linear-gradient(to top, rgba(6,9,14,.55), transparent 38%);
+  }
+  .copy {
+    position: fixed;
+    left: clamp(22px, 4.5vw, 64px);
+    bottom: calc(clamp(88px, 15vh, 140px) + env(safe-area-inset-bottom, 0px));
+    max-width: min(90vw, 820px);
+    text-shadow: 0 1px 0 rgba(0,0,0,.4), 0 0 40px rgba(0,0,0,.45);
+  }
+  .copy h1 {
+    margin: 0;
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 300;
+    font-size: clamp(34px, 6vw, 96px);
+    line-height: 1.0;
+    letter-spacing: -0.015em;
+    font-variation-settings: "opsz" 144;
+    max-width: 12ch;
+  }
+  .copy h1 .num { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .copy p {
+    margin: .6em 0 0;
+    font-size: clamp(16px, 1.8vw, 24px);
+    line-height: 1.4;
+    color: var(--ink-dim);
+  }
+  .copy p b { color: var(--ink); font-weight: 400; }
+  .credit {
+    position: fixed;
+    right: clamp(18px, 3vw, 44px);
+    top: calc(clamp(16px, 2.5vh, 30px) + env(safe-area-inset-top, 0px));
+    font-size: clamp(12px, 1.05vw, 15px);
+    color: var(--ink-dim); text-align: right; line-height: 1.45;
+    text-shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+  .credit a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .credit a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .status {
+    position: fixed;
+    left: clamp(22px, 4.5vw, 64px);
+    top: calc(clamp(16px, 2.5vh, 30px) + env(safe-area-inset-top, 0px));
+    font-size: clamp(12px, 1.05vw, 15px);
+    color: var(--ink-dim); display: flex; align-items: center; gap: 9px;
+    text-shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; opacity: .5; }
+  .status.live .dot { background: #A7E8A7; opacity: 1; box-shadow: 0 0 10px #A7E8A7; }
+  .status.demo .dot { background: #F2C14E; opacity: 1; }
+  .status.stale .dot { background: #F08A5D; opacity: 1; }
+  .scene-name {
+    position: fixed;
+    right: clamp(18px, 3vw, 44px);
+    bottom: calc(clamp(88px, 15vh, 140px) + env(safe-area-inset-bottom, 0px));
+    font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 300;
+    font-size: clamp(15px, 1.5vw, 22px);
+    color: var(--ink-dim); text-shadow: 0 1px 0 rgba(0,0,0,.4);
+    transition: opacity .8s ease;
+  }
+  .ribbon-label {
+    position: fixed;
+    left: clamp(22px, 4.5vw, 64px);
+    bottom: calc(clamp(54px, 9vh, 84px) + env(safe-area-inset-bottom, 0px));
+    font-size: clamp(12px, 1.05vw, 15px); color: var(--ink-dim);
+    text-shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+  @media (max-width: 600px) { .credit { max-width: 46vw; } .scene-name { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="vignette"></div>
+
+<div class="status" id="status" role="status"><span class="dot"></span><span id="statusText">Connecting to the turbine…</span></div>
+
+<div class="credit">
+  <a href="https://ambitioncommunityenergy.org/">Ambition Community Energy</a><br>
+  Lawrence Weston, Bristol<br>
+  Data CC BY 4.0 · <a href="https://doi.org/10.5281/zenodo.22662372">Zenodo</a>
+</div>
+
+<div class="copy" aria-live="polite">
+  <h1 id="headline">The turbine is waking up</h1>
+  <p id="sub">Reading the wind…</p>
+</div>
+<div class="scene-name" id="sceneName"></div>
+<div class="ribbon-label">Last 10 minutes of power</div>
+
+<script>
+(() => {
+'use strict';
+// ============ Config ============
+const API = 'https://ace-api.duckdns.org', SITE = 'ace';
+const FIELDS = 'aggregate_wind_speed,aggregate_wind_direction,aggregate_active_power';
+const NOMINAL_KW = 4200, HOME_KW = 0.31, POLL_MS = 2000, HISTORY = 600;
+const SCENE_SECONDS = 20, FADE_SECONDS = 2.5;
+const params = new URLSearchParams(location.search);
+const FORCE_DEMO = params.get('demo') === '1';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MOTION = reduceMotion ? 0.15 : 1;
+
+// ============ Shared data ============
+const target = { kw: 0, wind: 0, dir: 225 };
+const D = { kw: 0, wind: 0, dir: 225, p: 0, w: 0, vx: 0, vy: -1 };   // eased values
+let history = new Array(HISTORY).fill(null);
+let mode = 'connecting';
+
+// ============ Palette ============
+const STOPS = [
+  [0.00, [ 44,  66,  98]],   // still — dusk
+  [0.18, [ 60, 132, 172]],   // breeze — estuary
+  [0.42, [ 98, 190, 170]],   // working — sea green
+  [0.68, [236, 200,  92]],   // strong — gold
+  [0.88, [255, 138,  61]],   // full — ember
+  [1.00, [255, 214, 170]],   // white-hot tip
+];
+function pal(t) {
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  for (let i = 1; i < STOPS.length; i++) if (t <= STOPS[i][0]) {
+    const [t0,a] = STOPS[i-1], [t1,b] = STOPS[i], u = (t-t0)/(t1-t0);
+    return [a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u];
+  }
+  return STOPS[STOPS.length-1][1];
+}
+const rgba = (c, a) => `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+
+// ============ Noise ============
+const PERM = new Uint8Array(512);
+(() => { const p=[]; for (let i=0;i<256;i++) p[i]=i;
+  for (let i=255;i>0;i--){ const j=(Math.random()*(i+1))|0; [p[i],p[j]]=[p[j],p[i]]; }
+  for (let i=0;i<512;i++) PERM[i]=p[i&255]; })();
+const fade = t => t*t*t*(t*(t*6-15)+10), lerp=(a,b,t)=>a+(b-a)*t;
+const hsh = (x,y,z) => PERM[(PERM[(PERM[x&255]+y)&255]+z)&255]/255;
+function noise3(x,y,z){
+  const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-xi,yf=y-yi,zf=z-zi,u=fade(xf),v=fade(yf),w=fade(zf);
+  return lerp(lerp(lerp(hsh(xi,yi,zi),hsh(xi+1,yi,zi),u),lerp(hsh(xi,yi+1,zi),hsh(xi+1,yi+1,zi),u),v),
+              lerp(lerp(hsh(xi,yi,zi+1),hsh(xi+1,yi,zi+1),u),lerp(hsh(xi,yi+1,zi+1),hsh(xi+1,yi+1,zi+1),u),v),w);
+}
+const fbm = (x,y,z) => 0.55*noise3(x,y,z)+0.30*noise3(x*2.1+7,y*2.1+3,z*1.3)+0.15*noise3(x*4.3+19,y*4.3+11,z*1.7);
+
+// ============ Stage ============
+const stage = document.getElementById('stage');
+const ctx = stage.getContext('2d', { alpha: false });
+let W = 0, H = 0, DPR = 1;
+function mkCanvas() { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; }
+
+// ============ Scenes ============
+// Each: { name, init(), update(dt, t), canvas }  — draws into its own canvas (persistent trails allowed)
+
+// ---- 1. Silk: streamlines flowing with the wind ----
+const Silk = {
+  name: 'Silk',
+  init() {
+    this.c = mkCanvas(); this.g = this.c.getContext('2d');
+    this.g.fillStyle = '#0F141B'; this.g.fillRect(0,0,W,H);
+    const n = Math.round(Math.min(2400, W*H/900));
+    this.p = Array.from({length:n}, () => this.spawn({}));
+  },
+  spawn(o) { o.x = Math.random()*W; o.y = Math.random()*H; o.life = 60+Math.random()*180; o.hue = Math.random(); return o; },
+  update(dt, t) {
+    const g = this.g;
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(15,20,27,0.045)'; g.fillRect(0,0,W,H);
+    g.globalCompositeOperation = 'lighter';
+    const sp = (18 + 160*D.w) * MOTION * DPR, turb = 1.9 - 1.1*D.w, s = 0.0016/DPR;
+    g.lineCap = 'round';
+    for (const q of this.p) {
+      const n = fbm(q.x*s, q.y*s, t*0.05) - 0.5;
+      const a = Math.atan2(D.vy, D.vx) + n*Math.PI*turb;
+      const nx = q.x + Math.cos(a)*sp*dt, ny = q.y + Math.sin(a)*sp*dt;
+      const c = pal(D.p + (q.hue-0.5)*0.28 + n*0.3);
+      g.strokeStyle = rgba(c, 0.18 + 0.26*D.p); g.lineWidth = (0.9 + 1.9*q.hue)*DPR;
+      g.beginPath(); g.moveTo(q.x,q.y); g.lineTo(nx,ny); g.stroke();
+      q.x = nx; q.y = ny; q.life -= 60*dt;
+      if (q.life < 0 || q.x < -10 || q.x > W+10 || q.y < -10 || q.y > H+10) this.spawn(q);
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+};
+
+// ---- 2. Meadow: grasses bending in the wind ----
+const Meadow = {
+  name: 'Meadow',
+  init() {
+    this.c = mkCanvas(); this.g = this.c.getContext('2d');
+    this.rows = [];
+    const rowsN = 7;
+    for (let r = 0; r < rowsN; r++) {
+      const depth = r/(rowsN-1);            // 0 back, 1 front
+      const count = Math.round(lerp(90, 34, depth) * (W/(1400*DPR)) + 20);
+      const blades = [];
+      for (let i = 0; i < count; i++) blades.push({ x: (i+Math.random()*0.9)/count*W*1.06 - W*0.03, len: lerp(0.18,0.62,depth)*H*(0.7+0.6*Math.random()), ph: Math.random()*6.28, k: 0.7+0.6*Math.random() });
+      this.rows.push({ depth, blades, base: H - lerp(0.30, 0.08, depth)*H });
+    }
+  },
+  update(dt, t) {
+    const g = this.g;
+    // sky
+    const sky = g.createLinearGradient(0,0,0,H);
+    const top = pal(Math.max(0, D.p-0.05)), mid = pal(0.1 + D.p*0.7);
+    sky.addColorStop(0, rgba([top[0]*0.5, top[1]*0.5, top[2]*0.6],1));
+    sky.addColorStop(0.55, rgba([mid[0]*0.7, mid[1]*0.7, mid[2]*0.75],1));
+    sky.addColorStop(1, '#0F141B');
+    g.fillStyle = sky; g.fillRect(0,0,W,H);
+    // low sun — brightness grows with power
+    const sunR = (0.10 + 0.18*D.p)*Math.min(W,H);
+    const sx = W*0.68, sy = H*0.40;
+    const sun = g.createRadialGradient(sx,sy,0,sx,sy,sunR*2.6);
+    const sc = pal(Math.min(1, D.p+0.35));
+    sun.addColorStop(0, rgba(sc, 0.55+0.4*D.p)); sun.addColorStop(0.25, rgba(sc, 0.18)); sun.addColorStop(1, rgba(sc,0));
+    g.fillStyle = sun; g.fillRect(0,0,W,H);
+    // grasses
+    const lean = D.vx * (0.25 + 1.1*D.w);       // direction-aware lean
+    const gust = (0.02 + 0.10*D.w) * MOTION;
+    const freq = 0.9 + 3.2*D.w;
+    g.lineCap = 'round';
+    for (const row of this.rows) {
+      const d = row.depth;
+      const col = pal(0.12 + D.p*0.8 + d*0.12);
+      const dark = [col[0]*(0.25+0.35*d), col[1]*(0.25+0.35*d), col[2]*(0.3+0.35*d)];
+      g.lineWidth = lerp(1.2, 3.2, d)*DPR;
+      for (const b of row.blades) {
+        const sway = Math.sin(t*freq*b.k + b.ph + b.x*0.004/DPR) * gust + Math.sin(t*freq*2.3 + b.ph*2)*gust*0.3;
+        const bend = (lean + sway) * b.len;
+        const x0 = b.x, y0 = row.base, x2 = x0 + bend, y2 = y0 - b.len*(1 - 0.35*Math.abs(lean+sway));
+        const grad = g.createLinearGradient(x0,y0,x2,y2);
+        grad.addColorStop(0, rgba(dark,1)); grad.addColorStop(1, rgba(col, 0.7+0.3*d));
+        g.strokeStyle = grad;
+        g.beginPath(); g.moveTo(x0,y0); g.quadraticCurveTo(x0 + bend*0.25, y0 - b.len*0.55, x2, y2); g.stroke();
+      }
+    }
+  }
+};
+
+// ---- 3. Bloom: a rotor mandala, rings turning with the wind ----
+const Bloom = {
+  name: 'Bloom',
+  init() { this.c = mkCanvas(); this.g = this.c.getContext('2d'); this.g.fillStyle='#0F141B'; this.g.fillRect(0,0,W,H); this.rot = 0; },
+  update(dt, t) {
+    const g = this.g;
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(15,20,27,0.16)'; g.fillRect(0,0,W,H);
+    g.globalCompositeOperation = 'lighter';
+    const cx = W*0.5, cy = H*0.47, R = Math.min(W,H)*0.40;
+    const rpm = 2 + 12*D.w;                       // visual rotor speed
+    this.rot += rpm/60 * 6.283 * dt * MOTION;
+    const rings = 11;
+    for (let k = 0; k < rings; k++) {
+      const f = k/(rings-1);
+      const r = R*(0.12 + 0.88*f) * (0.8 + 0.2*D.p);
+      const c = pal(D.p + (f-0.5)*0.35);
+      const dirSign = k%2 ? -1 : 1;
+      const ang = this.rot*(1 + f*0.8)*dirSign + Math.atan2(D.vy,D.vx)*f;
+      const blades = 3;
+      g.lineWidth = (2 + 10*(1-f)*(0.3+D.p))*DPR; g.lineCap = 'round';
+      g.strokeStyle = rgba(c, 0.22 + 0.22*(1-f)*(0.5+D.p));
+      for (let b = 0; b < blades; b++) {
+        const a0 = ang + b*6.283/blades, span = 0.55 + 0.9*D.w*(1-f) + 0.25*Math.sin(t*0.7+k);
+        g.beginPath(); g.arc(cx, cy, r, a0, a0+span); g.stroke();
+      }
+    }
+    // hub glow
+    const hub = g.createRadialGradient(cx,cy,0,cx,cy,R*0.35);
+    const hc = pal(Math.min(1,D.p+0.3));
+    hub.addColorStop(0, rgba(hc, 0.12+0.28*D.p)); hub.addColorStop(1, rgba(hc,0));
+    g.fillStyle = hub; g.fillRect(cx-R,cy-R,2*R,2*R);
+    // ten-minute dial around the outside
+    g.globalCompositeOperation = 'source-over';
+    g.lineWidth = 2*DPR;
+    for (let i = 0; i < 180; i++) {
+      const a = Math.floor(i/180*HISTORY), b = Math.floor((i+1)/180*HISTORY);
+      let s=0,n=0; for (let j=a;j<b;j++){ const v=history[j]; if(v!=null){s+=v;n++;} }
+      if (!n) continue;
+      const hp = Math.min(1, s/n/NOMINAL_KW), ang = -Math.PI/2 + i/180*6.283;
+      const r0 = R*1.04, r1 = r0 + R*0.14*hp + 2*DPR;
+      g.strokeStyle = rgba(pal(hp), 0.35 + 0.5*hp);
+      g.beginPath(); g.moveTo(cx+Math.cos(ang)*r0, cy+Math.sin(ang)*r0); g.lineTo(cx+Math.cos(ang)*r1, cy+Math.sin(ang)*r1); g.stroke();
+    }
+  }
+};
+
+// ---- 4. Drift: a sky full of seeds carried on the wind ----
+const Drift = {
+  name: 'Drift',
+  init() {
+    this.c = mkCanvas(); this.g = this.c.getContext('2d'); this.g.fillStyle='#0F141B'; this.g.fillRect(0,0,W,H);
+    const n = Math.round(Math.min(3000, W*H/700));
+    this.p = Array.from({length:n}, () => ({ x: Math.random()*W, y: Math.random()*H, z: Math.random(), ph: Math.random()*6.28 }));
+  },
+  update(dt, t) {
+    const g = this.g;
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(15,20,27,0.10)'; g.fillRect(0,0,W,H);
+    // horizon wash
+    const wash = g.createLinearGradient(0,H*0.3,0,H);
+    const wc = pal(D.p*0.6); wash.addColorStop(0,'rgba(0,0,0,0)'); wash.addColorStop(1, rgba([wc[0]*0.4,wc[1]*0.4,wc[2]*0.45],0.12));
+    g.fillStyle = wash; g.fillRect(0,0,W,H);
+    g.globalCompositeOperation = 'lighter';
+    const base = (12 + 220*D.w) * MOTION * DPR;
+    for (const q of this.p) {
+      const sp = base*(0.35+0.9*q.z);
+      const flutter = Math.sin(t*(1.5+3*D.w) + q.ph) * (4+30*D.w)*DPR;
+      const nx = q.x + D.vx*sp*dt + (-D.vy)*flutter*dt, ny = q.y + D.vy*sp*dt + D.vx*flutter*dt + 6*dt*DPR*(1-q.z);
+      const c = pal(D.p*0.9 + q.z*0.25);
+      const a = 0.22 + 0.6*q.z*(0.45+0.55*D.p);
+      g.strokeStyle = rgba(c, a); g.lineWidth = (0.6 + 2.2*q.z)*DPR; g.lineCap='round';
+      g.beginPath(); g.moveTo(q.x,q.y); g.lineTo(nx,ny); g.stroke();
+      q.x = nx; q.y = ny;
+      if (q.x < -20) q.x = W+20; if (q.x > W+20) q.x = -20; if (q.y < -20) q.y = H+20; if (q.y > H+20) q.y = -20;
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+};
+
+// ---- 5. Mosaic: the pixel field, flowing ----
+const Mosaic = {
+  name: 'Mosaic',
+  init() {
+    this.c = mkCanvas(); this.g = this.c.getContext('2d'); this.g.imageSmoothingEnabled = false;
+    const cell = (innerWidth < 700 ? 9 : 12);
+    this.cols = Math.ceil(innerWidth/cell); this.rows = Math.ceil(innerHeight/cell);
+    this.off = document.createElement('canvas'); this.off.width = this.cols; this.off.height = this.rows;
+    this.og = this.off.getContext('2d'); this.img = this.og.createImageData(this.cols, this.rows);
+    this.dx = 0; this.dy = 0;
+  },
+  update(dt, t) {
+    const px = this.img.data, cols = this.cols, rows = this.rows;
+    const speed = MOTION*(0.4 + 6*D.w);
+    this.dx += D.vx*speed*dt; this.dy += D.vy*speed*dt;
+    const z = t*0.08*(1+3*D.w), gust = 0.35+0.65*D.w, levels = 7, sc = 0.055;
+    const base = pal(D.p), lit = pal(Math.min(1,D.p+0.22)), dark = pal(Math.max(0,D.p-0.18));
+    let i = 0;
+    for (let y=0;y<rows;y++) for (let x=0;x<cols;x++) {
+      let n = fbm((x-this.dx)*sc, (y-this.dy)*sc, z);
+      n = 0.5 + (n-0.5)*(0.8+1.6*gust); n = n<0?0:n>1?1:n; n = Math.round(n*(levels-1))/(levels-1);
+      let r,g,b;
+      if (n<0.5){const u=n*2; r=dark[0]+(base[0]-dark[0])*u; g=dark[1]+(base[1]-dark[1])*u; b=dark[2]+(base[2]-dark[2])*u;}
+      else {const u=n*2-1; r=base[0]+(lit[0]-base[0])*u; g=base[1]+(lit[1]-base[1])*u; b=base[2]+(lit[2]-base[2])*u;}
+      px[i++]=r; px[i++]=g; px[i++]=b; px[i++]=255;
+    }
+    this.og.putImageData(this.img,0,0);
+    this.g.imageSmoothingEnabled = false;
+    this.g.drawImage(this.off,0,0,W,H);
+  }
+};
+
+const SCENES = [Silk, Meadow, Bloom, Drift, Mosaic];
+let cur = 0, next = -1, fadeT = 0, sceneClock = 0;
+const sceneName = document.getElementById('sceneName');
+
+function resize() {
+  DPR = Math.min(2, devicePixelRatio || 1);
+  W = Math.round(innerWidth*DPR); H = Math.round(innerHeight*DPR);
+  stage.width = W; stage.height = H;
+  for (const s of SCENES) s.init();
+}
+addEventListener('resize', resize, { passive: true });
+resize();
+sceneName.textContent = SCENES[cur].name;
+
+// ============ Ribbon (shared, drawn on top) ============
+function drawRibbon() {
+  const h = Math.max(18*DPR, H*0.055), top = H - h - 22*DPR*(1 + 0.0);
+  const cols = Math.min(HISTORY, Math.floor(W/(4*DPR)));
+  const cw = W/cols;
+  for (let x=0;x<cols;x++) {
+    const a=Math.floor(x/cols*HISTORY), b=Math.floor((x+1)/cols*HISTORY);
+    let s=0,n=0; for(let j=a;j<b;j++){const v=history[j]; if(v!=null){s+=v;n++;}}
+    if(!n){ ctx.fillStyle='rgba(247,241,231,0.06)'; ctx.fillRect(x*cw, top+h-2*DPR, cw-1, 2*DPR); continue; }
+    const hp=Math.min(1,s/n/NOMINAL_KW), bh=Math.max(2*DPR, hp*h);
+    ctx.fillStyle = rgba(pal(hp), 0.85);
+    ctx.fillRect(x*cw, top+h-bh, cw-1, bh);
+  }
+}
+
+// ============ Main loop ============
+let t0 = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now-t0)/1000); t0 = now; const t = now/1000;
+  // ease data
+  const k = 1-Math.pow(0.03, dt);
+  D.kw += (target.kw-D.kw)*k; D.wind += (target.wind-D.wind)*k;
+  const dd = ((target.dir - D.dir + 540)%360)-180; D.dir += dd*k;
+  D.p = Math.max(0,Math.min(1,D.kw/NOMINAL_KW)); D.w = Math.max(0,Math.min(1,D.wind/20));
+  const th = (D.dir+180)*Math.PI/180; D.vx = Math.sin(th); D.vy = -Math.cos(th);
+
+  // scene rotation
+  sceneClock += dt;
+  if (next < 0 && sceneClock >= SCENE_SECONDS) { next = (cur+1)%SCENES.length; fadeT = 0; SCENES[next].init(); sceneName.style.opacity = 0; }
+  SCENES[cur].update(dt, t);
+  if (next >= 0) {
+    SCENES[next].update(dt, t);
+    fadeT += dt/FADE_SECONDS;
+    if (fadeT >= 1) { cur = next; next = -1; sceneClock = 0; sceneName.textContent = SCENES[cur].name; sceneName.style.opacity = 1; }
+  }
+  ctx.globalAlpha = 1; ctx.drawImage(SCENES[cur].c, 0, 0);
+  if (next >= 0) { const e = fadeT<0.5 ? 2*fadeT*fadeT : 1-Math.pow(-2*fadeT+2,2)/2; ctx.globalAlpha = e; ctx.drawImage(SCENES[next].c,0,0); ctx.globalAlpha = 1; }
+  drawRibbon();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ============ Copy ============
+const COMPASS = ['north','north-east','east','south-east','south','south-west','west','north-west'];
+const headline = document.getElementById('headline'), sub = document.getElementById('sub');
+const statusEl = document.getElementById('status'), statusText = document.getElementById('statusText');
+const fmt = new Intl.NumberFormat('en-GB');
+function writeCopy() {
+  const kw = Math.round(target.kw), wind = target.wind;
+  const from = COMPASS[Math.round((((target.dir%360)+360)%360)/45)%8];
+  const homes = Math.round(kw/HOME_KW/100)*100;
+  if (kw < 15) {
+    headline.textContent = wind < 3 ? 'The turbine is resting' : 'The turbine is paused';
+    sub.innerHTML = wind < 3
+      ? `Barely any wind — <b>${wind.toFixed(1)} m/s</b> from the ${from}. It needs about 3 m/s to start turning.`
+      : `Wind is <b>${wind.toFixed(1)} m/s</b> from the ${from}, but the turbine isn't generating right now.`;
+  } else {
+    headline.innerHTML = `The turbine is making <span class="num">${fmt.format(kw)}</span>&nbsp;kW`;
+    sub.innerHTML = `Enough for about <b>${fmt.format(homes)} homes</b> right now. Wind <b>${wind.toFixed(1)} m/s</b> from the ${from}.`;
+  }
+}
+function setStatus(m, text) { mode = m; statusEl.className = 'status '+m; statusText.textContent = text; }
+
+// ============ Data ============
+const toMs = t => t > 1e12 ? t : t*1000;
+let backoff = 0, firstLoad = true, demoTimer = null;
+async function poll() {
+  if (FORCE_DEMO) return;
+  const limit = firstLoad ? HISTORY : 5;
+  const url = `${API}/v1/sites/${SITE}/data/site_instantaneous/latest?resolution=1s&fields=${FIELDS}&limit=${limit}`;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (res.status === 429) {
+      const ra = parseFloat(res.headers.get('Retry-After')||'5');
+      backoff = Math.max(backoff*2||4000, ra*1000);
+      setStatus('stale', `Turbine data is busy — retrying in ${Math.round(backoff/1000)} s`); return;
+    }
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json(); backoff = 0;
+    if (demoTimer) { clearInterval(demoTimer); demoTimer = null; firstLoad = true; setStatus('live','Live from the turbine'); return; }
+    const s = d.series||{}, ts = d.timestamps||[], n = ts.length; if (!n) throw new Error('empty');
+    const kwS = s.aggregate_active_power||[], wS = s.aggregate_wind_speed||[], dS = s.aggregate_wind_direction||[];
+    if (firstLoad) { history = new Array(HISTORY).fill(null); for (let i=0;i<n;i++) history[HISTORY-n+i] = kwS[i]; firstLoad = false; }
+    else { for (let i=0;i<n;i++) history.push(kwS[i]); history = history.slice(-HISTORY); }
+    const last = a => { for (let i=a.length-1;i>=0;i--) if (a[i]!=null) return a[i]; return null; };
+    const kw=last(kwS), wind=last(wS), dir=last(dS);
+    if (kw!=null) target.kw=kw; if (wind!=null) target.wind=wind; if (dir!=null) target.dir=dir;
+    const ageMin = (Date.now()-toMs(ts[n-1]))/60000;
+    if (ageMin > 5) setStatus('stale', `Live · last reading ${Math.round(ageMin)} min ago`); else setStatus('live','Live from the turbine');
+    writeCopy();
+  } catch (err) {
+    if (mode !== 'live' && mode !== 'stale') startDemo('Couldn\u2019t reach the turbine — showing demo weather');
+    else setStatus('stale','Connection lost — showing the last reading');
+  }
+}
+function startDemo(reason) {
+  if (demoTimer) return;
+  setStatus('demo', reason);
+  let ph = Math.random()*100; history = new Array(HISTORY).fill(null);
+  demoTimer = setInterval(() => {
+    ph += 0.12;
+    const wind = 2.5 + 10*(0.5+0.5*Math.sin(ph*0.35)) + 1.0*Math.sin(ph*2.7);
+    const r = Math.max(0,Math.min(1,(wind-3)/9)), kw = NOMINAL_KW*r*r*(0.9+0.1*Math.sin(ph*5));
+    target.wind = wind; target.kw = kw; target.dir = 220 + 30*Math.sin(ph*0.11);
+    history.push(kw); history = history.slice(-HISTORY); writeCopy();
+  }, 1000);
+}
+if (FORCE_DEMO) startDemo('Demo weather');
+else { poll(); (function loop(){ setTimeout(async()=>{ await poll(); loop(); }, POLL_MS+backoff); })(); }
+})();
+</script>
+</body>
+</html>
