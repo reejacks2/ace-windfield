@@ -16,7 +16,8 @@ async function refreshToday() {
   const d = await getAllPages(`${A}/data/wecstd/range`, {
     resolution: '10m', start: isoZ(since), end: isoZ(new Date()), page_size: 200,
     fields: 'energy_produced,active_power_mean,available_power_by_wind_mean,technically_available_power_mean,' +
-            'available_power_after_force_majeure_mean,available_power_after_external_setpoints_mean,air_pressure_mean',
+            'available_power_after_force_majeure_mean,available_power_after_external_setpoints_mean,air_pressure_mean,' +
+            'blade_angle_mean',
   });
   const s = d.series, n = d.timestamps.length;
   if (!n) return;
@@ -35,6 +36,7 @@ async function refreshToday() {
   state.today = {
     kwh, windOnlyKwh: windOnly, gapKwh: gap, since: since.getTime(), at: toMs(d.timestamps[i]),
     pressure: clean(last(s.air_pressure_mean)),
+    pitch: clean(last(s.blade_angle_mean)),
     lastRow: {
       wind: s.available_power_by_wind_mean[i], tech: s.technically_available_power_mean[i],
       fm: s.available_power_after_force_majeure_mean[i], ext: s.available_power_after_external_setpoints_mean[i],
@@ -85,6 +87,37 @@ async function refreshSeason() {
   if (days) state.season = { days, curtailedDays, gapMWh: gap / 1000, windOnlyMWh: windOnly / 1000, producedMWh: produced / 1000, at: Date.now() };
 }
 
+// When the turbine's record starts ("since March 2023" on the odometer).
+async function refreshSince() {
+  const d = await getJSON(`${A}/configuration/latest`);
+  const c = (d.changes || []).find(x => x.signal === 'wec_availability_start');
+  const t = c && Date.parse(c.value);
+  if (Number.isFinite(t)) state.since = new Date(t);
+}
+
+// History for the replay scene: every 10-minute record the API has for the last 60 days
+// (10m history begins 2026-07-21, so early on this is shorter).
+async function refreshReplay() {
+  const end = new Date(), start = new Date(end.getTime() - 60 * 864e5);
+  const d = await getAllPages(`${A}/data/wecstd/range`, {
+    resolution: '10m', start: isoZ(start), end: isoZ(end), page_size: 5000,
+    fields: 'active_power_mean,available_power_by_wind_mean,wind_speed_mean',
+  });
+  const n = d.timestamps.length;
+  if (n < 144) return;
+  // Re-grid onto a regular 10-minute axis so gaps stay gaps (NaN), not silently closed up.
+  const step = 600_000, t0 = Math.floor(toMs(d.timestamps[0]) / step) * step;
+  const len = Math.floor((toMs(d.timestamps[n - 1]) - t0) / step) + 1;
+  const kw = new Float32Array(len).fill(NaN), avail = new Float32Array(len).fill(NaN), wind = new Float32Array(len).fill(NaN);
+  for (let i = 0; i < n; i++) {
+    const k = Math.round((toMs(d.timestamps[i]) - t0) / step);
+    kw[k] = d.series.active_power_mean[i] ?? NaN;
+    avail[k] = d.series.available_power_by_wind_mean[i] ?? NaN;
+    wind[k] = d.series.wind_speed_mean[i] ?? NaN;
+  }
+  state.replay = { t0, step, kw, avail, wind, at: Date.now() };
+}
+
 function every(fn, ms, offset) {
   let failures = 0;
   const run = async () => {
@@ -102,6 +135,8 @@ export function startSlow() {
   every(refreshToday, 300_000, 3_000);       // 10m family: recommended refresh 300 s
   every(refreshHub, 600_000, 4_500);
   every(refreshSeason, 3_600_000, 6_000);    // daily family: recommended refresh 3600 s
+  every(refreshSince, 24 * 3_600_000, 7_500);
+  every(refreshReplay, 6 * 3_600_000, 9_000);
 }
 
 // ?demo=1 only — lets every story be seen without the API. Never used when the API is merely down.
@@ -112,5 +147,13 @@ function fakeSlow() {
   state.hub = { hubC: 11, groundC: 13, at: now };
   state.status = { main: 0, sub: 0, fault: false, warning: false, service: false, at: now };
   state.season = { days: 90, curtailedDays: 6, gapMWh: 14.2, windOnlyMWh: 1650, producedMWh: 1610, at: now };
+  state.since = new Date('2023-03-29T00:00:00+01:00');
+  const len = 60 * 144, step = 600_000, kw = new Float32Array(len), avail = new Float32Array(len), wind = new Float32Array(len);
+  for (let i = 0; i < len; i++) {
+    const w = 6 + 4 * Math.sin(i / 300) + 2.5 * Math.sin(i / 37) + 1.5 * Math.sin(i / 7);
+    const r = Math.max(0, Math.min(1, (w - 3) / 9)); wind[i] = w; avail[i] = 4200 * r * r;
+    kw[i] = avail[i] * (i % 997 < 30 ? 0.5 : 0.98);
+  }
+  state.replay = { t0: now - len * step, step, kw, avail, wind, at: now };
   changed();
 }

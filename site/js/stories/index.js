@@ -8,10 +8,12 @@ import stopped from './stopped.js';
 import energy from './energy.js';
 import curtailment from './curtailment.js';
 import weather from './weather.js';
+import lifetime from './lifetime.js';
+import { stageInfo } from '../scenes/stage.js';
 
-const ALL = { now, stopped, energy, curtailment, weather };
+const ALL = { now, stopped, energy, curtailment, weather, lifetime };
 const LIVE = [stopped, now];                  // first ready one wins
-const SEQUENCE = ['live', energy, 'live', curtailment, 'live', weather];
+const SEQUENCE = ['live', energy, 'live', lifetime, 'live', curtailment, 'live', weather];
 
 export function startStories({ copy, headline, sub, status, statusText }) {
   let slot = 0, current = null, shownHTML = '';
@@ -32,14 +34,16 @@ export function startStories({ copy, headline, sub, status, statusText }) {
     if (current && LIVE.includes(current) && SEQUENCE[slot] === 'live') current = liveStory();
     if (ALL[PIN_STORY]?.ready(state)) current = ALL[PIN_STORY];
     if (!current?.ready(state)) current = pick();
-    const { headline: h, sub: s } = current.render(state);
+    // a scene with its own words (the replay) takes the copy while it plays
+    const { headline: h, sub: s } = stageInfo.caption || current.render(state);
     const html = h + '\u0000' + s;
     if (html !== shownHTML) { headline.innerHTML = h; sub.innerHTML = s; shownHTML = html; }
     status.className = 'status ' + state.mode; statusText.textContent = state.statusText;
-    copy.dataset.story = current.id;
+    copy.dataset.story = stageInfo.caption ? 'scene' : current.id;
   }
 
   function advance() {
+    if (stageInfo.caption) return;                    // don't rotate under a scene's caption
     slot = (slot + 1) % SEQUENCE.length;
     const nextStory = pick();
     if (nextStory === current) return paint();
@@ -49,5 +53,6 @@ export function startStories({ copy, headline, sub, status, statusText }) {
 
   current = pick(); paint();
   onChange(paint);
+  setInterval(paint, 250);                          // scene captions change faster than data
   setInterval(advance, STORY_SECONDS * 1000);
 }

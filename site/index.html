@@ -4,8 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Windfield — the ACE turbine, right now</title>
-<meta name="description" content="A live picture of the Ambition Community Energy wind turbine in Lawrence Weston, Bristol.">
+<meta name="description" content="A live picture of the Ambition Community Energy wind turbine in Lawrence Weston, Bristol: its real rotor, real sky and real power, second by second.">
 <meta name="theme-color" content="#0F141B">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Windfield — the ACE turbine, right now">
+<meta property="og:description" content="Bristol’s community wind turbine, live: its real rotor speed, heading, sky and power, every second.">
+<meta property="og:url" content="https://reejacks2.github.io/ace-windfield/">
+<meta property="og:image" content="https://reejacks2.github.io/ace-windfield/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://ace-api.duckdns.org" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -18,6 +28,11 @@
 
 <div class="status connecting" id="status" role="status"><span class="dot"></span><span id="statusText">Connecting to the turbine…</span></div>
 
+<div class="odometer" id="odometer" hidden>
+  <div class="odo-num" id="odoNum"></div>
+  <div class="odo-since" id="odoSince"></div>
+</div>
+
 <div class="credit">
   <a href="https://ambitioncommunityenergy.org/">Ambition Community Energy</a><br>
   Lawrence Weston, Bristol<br>
@@ -29,7 +44,8 @@
   <p id="sub">Reading the wind…</p>
 </div>
 <div class="scene-name" id="sceneName"></div>
-<div class="ribbon-label">Last 10 minutes of power</div>
+<div class="ribbon-label">Last 10 minutes · <span class="key-made">made</span> <span class="key-offered">what the wind offered</span></div>
+<button class="sound" id="sound" type="button" aria-pressed="false">Sound off</button>
 
 <noscript><div class="copy"><h1>Windfield needs JavaScript</h1><p>It draws the ACE turbine’s live data as moving art.</p></div></noscript>
 </body>

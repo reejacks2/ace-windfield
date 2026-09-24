@@ -1,0 +1,9 @@
+{
+  "name": "Windfield — the ACE turbine, right now",
+  "short_name": "Windfield",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#0F141B",
+  "theme_color": "#0F141B",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

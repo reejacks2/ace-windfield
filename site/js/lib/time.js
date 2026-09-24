@@ -16,3 +16,5 @@ export function londonMidnight(now = new Date()) {
 }
 
 export const clock = ms => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(ms);
+
+export const TZ_FMT = { timeZone: TZ };

@@ -33,6 +33,15 @@ API: https://ace-api.duckdns.org (contract snapshots in `api/`, dated 2026.09.23
   (65.535 / 6553.5 / 65535). Real weather: wind, direction, `air_pressure_mean`,
   `tep3c021.outside_hub_height_temperature_mean` / `outside_ground_temperature_mean`.
 - Site config reports `farm_nominal_power` 4245 kW (palette still keyed to 4200).
+- **Direction (calibrated 2026.09.24):** `site_instantaneous.aggregate_wind_direction` is the
+  NACELLE HEADING (equals `wec_nacelle_position` second by second), not the wind.
+  `wec_wind_direction` is the vane angle relative to the nacelle (median ≈ 0 while generating).
+  Wind-from = nacelle + relative (the yaw moves toward +rel in 84% of moves). The live feed now
+  uses `wec_instantaneous` for this reason; before this the page reported heading as wind.
+- `wec_instantaneous` (1 Hz) also gives rotor rpm (tops out ~12–14), heading, wind-only
+  available power, and `wec_energy_exported` — a lifetime kWh counter (30,480,221 on 2026-09-24).
+- Asset config: `wec_type` EP3-CS02, `wec_nominal_power` 4245, `wec_availability_start`
+  2023-03-29. Blade pitch (`blade_angle_mean`, 10m) ≈ 60° feathered at idle, ~0–5° generating.
 - Status events: main 0 = running, main 2 = lack of wind (median wind 0.6 m/s across Aug–Sep
   events). Other codes seen (1, 8, 9, 17, 20, 21, 50, 62, 240, 306) are UNLABELLED — ask ACE
   for the Enercon status list before naming them.
@@ -74,10 +83,31 @@ as `wind − field`. Losses may overlap; don't sum them.
 - Hidden tab → live poll drops to every 5 s, slow feeds to ≥ 5 min.
 - Run locally: `cd site && python -m http.server` (modules don't load from file://).
 
+## Scenes and features (2026.09.24)
+- **Live twin** (lead scene, returns between the others): real rotor rpm, heading, blade pitch,
+  under the real sky. Camera looks WEST (280°) from Lawrence Weston over the turbine toward the
+  Severn, so sunsets sit behind it all year — bearing is an assumption to confirm with ACE.
+  Rotor radius ≈ ½ hub height. Scene label shows `rpm · facing · blades°`.
+- **Real sky** (`lib/sky.js`): sun/moon position and moon phase for 51.503 N, 2.672 W; checked
+  against solstice/equinox noon altitudes (61.9° / 15.0° / 38.5°). Every scene composes over it;
+  the art scenes get a dimmed copy so light strokes keep contrast in daylight.
+- **Replay**: last 60 days as a 24-hour clock (ring = day, midnight at top), 34 s time-lapse;
+  its caption replaces the stories while it plays. 2026-09-24: 1,507 MWh in 61 days (CF 24.5%,
+  consistent with the script's 25.0%).
+- **Odometer**: the turbine's own lifetime counter; tenths interpolated from live power but
+  never past the next real kWh; hidden when offline. Lifetime story: GWh + home-years.
+- **Ghost ribbon**: solid = made, outline = wind-only available power, ember = the gap.
+- **Kiosk**: cursor hides after 3 s; double-click or `f` = fullscreen; `?kiosk=1` adds wake lock,
+  04:00 Bristol reload, hides the sound button. PWA manifest + icon; `og.png` social card.
+- **Sound** (opt-in): wind noise by wind speed, blade-pass swish at 3 × rpm / 60 Hz, a power drone.
+- URL params: `?scene=live-twin|silk|meadow|replay|bloom|drift|mosaic`, `?story=<id>`,
+  `?demo=1`, `?kiosk=1`.
+
 ## Open questions for ACE
 - Blessing for 0.31 kW/home (used in "homes now" and "a day's electricity for N homes").
 - A £/MWh figure for earnings (`PRICE_GBP_PER_MWH`; the earnings line is hidden while null).
 - Enercon status-code labels for the codes listed above.
+- Which way the neighbours actually look at the turbine (camera bearing, now 280°).
 
 ## Design decisions carried over
 - Palette stops keyed to kW/4200: dusk → estuary → sea green → gold → ember.

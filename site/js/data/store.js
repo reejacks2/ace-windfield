@@ -4,12 +4,16 @@ import { HISTORY } from '../config.js';
 export const state = {
   mode: 'connecting',        // connecting | live | stale | offline | demo
   statusText: 'Connecting to the turbine…',
-  now: { kw: 0, wind: 0, dir: 225, at: 0 },     // latest 1 Hz reading (target for easing)
-  history: new Array(HISTORY).fill(null),        // last HISTORY seconds of kW
-  today: null,     // { kwh, windOnlyKwh, gapKwh, since, at, lastRow: {wind, tech, fm, ext, actual}, pressure }
+  // latest 1 Hz reading. dir = wind FROM (true bearing); yaw = nacelle heading; avail = wind-only kW.
+  now: { kw: 0, avail: 0, wind: 0, dir: 225, yaw: 225, rpm: 0, lifetimeKwh: null, lifetimeTickAt: 0, at: 0 },
+  history: new Array(HISTORY).fill(null),        // last HISTORY seconds of kW made
+  ghost: new Array(HISTORY).fill(null),          // … and of kW the wind offered
+  today: null,     // { kwh, windOnlyKwh, gapKwh, since, at, lastRow: {wind, tech, fm, ext, actual}, pressure, pitch }
   hub: null,       // { hubC, groundC, at }
   status: null,    // { main, sub, fault, warning, service, at }
   season: null,    // { days, curtailedDays, gapMWh, windOnlyMWh, producedMWh, at }
+  since: null,     // Date the turbine's availability record starts (asset configuration)
+  replay: null,    // { t0, step, kw: Float32Array, avail: Float32Array, wind: Float32Array, at }
 };
 
 const subs = new Set();

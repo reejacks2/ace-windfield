@@ -1,5 +1,5 @@
 // Meadow: grasses bending in the wind, under a sun that brightens with power.
-import { view, motion as D, MOTION, mkCanvas, BG } from './stage.js';
+import { view, motion as D, world, MOTION, mkCanvas, BG } from './stage.js';
 import { pal, rgba } from '../lib/palette.js';
 import { lerp } from '../lib/noise.js';
 
@@ -22,9 +22,11 @@ export default {
     const { W, H, DPR } = view, g = this.g;
     // sky
     const sky = g.createLinearGradient(0, 0, 0, H);
-    const top = pal(Math.max(0, D.p-0.05)), mid = pal(0.1 + D.p*0.7);
-    sky.addColorStop(0, rgba([top[0]*0.5, top[1]*0.5, top[2]*0.6], 1));
-    sky.addColorStop(0.55, rgba([mid[0]*0.7, mid[1]*0.7, mid[2]*0.75], 1));
+    // the real sky's colours, warmed by the power being made
+    const real = world.sky, tint = pal(0.1 + D.p*0.7), mix = (a, b, u) => a.map((v, i) => v + (b[i]-v)*u);
+    const top = real ? real.zenith : [22, 33, 49], mid = mix(real ? real.horizon : [40, 60, 80], [tint[0]*0.7, tint[1]*0.7, tint[2]*0.75], 0.35);
+    sky.addColorStop(0, rgba(top, 1));
+    sky.addColorStop(0.55, rgba(mid, 1));
     sky.addColorStop(1, BG);
     g.fillStyle = sky; g.fillRect(0, 0, W, H);
     // low sun — brightness grows with power
