@@ -1,0 +1,93 @@
+:root {
+  --ink: #F7F1E7;
+  --ink-dim: rgba(247,241,231,.66);
+  --bg: #0F141B;
+  --edge: clamp(22px, 4.5vw, 64px);
+  --edge-r: clamp(18px, 3vw, 44px);
+  --top: calc(clamp(16px, 2.5vh, 30px) + env(safe-area-inset-top, 0px));
+  --above-ribbon: calc(clamp(88px, 15vh, 140px) + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Atkinson Hyperlegible", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+canvas#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.vignette {
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(6,9,14,.55) 100%),
+    linear-gradient(to top, rgba(6,9,14,.55), transparent 38%);
+}
+
+.copy {
+  position: fixed; left: var(--edge); bottom: var(--above-ribbon);
+  max-width: min(90vw, 820px);
+  text-shadow: 0 1px 0 rgba(0,0,0,.4), 0 0 40px rgba(0,0,0,.45);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.copy.out { opacity: 0; transform: translateY(6px); }
+.copy h1 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif; font-weight: 300;
+  font-size: clamp(34px, 6vw, 96px); line-height: 1.0; letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 144;
+  max-width: 13ch;
+}
+.copy h1 .num { font-weight: 600; font-variant-numeric: tabular-nums; }
+.copy p {
+  margin: .6em 0 0; max-width: 40ch;
+  font-size: clamp(16px, 1.8vw, 24px); line-height: 1.4;
+  color: var(--ink-dim);
+}
+.copy p b { color: var(--ink); font-weight: 400; }
+
+.credit {
+  position: fixed; right: var(--edge-r); top: var(--top);
+  font-size: clamp(12px, 1.05vw, 15px); line-height: 1.45;
+  color: var(--ink-dim); text-align: right;
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+.credit a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.credit a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.status {
+  position: fixed; left: var(--edge); top: var(--top);
+  font-size: clamp(12px, 1.05vw, 15px);
+  color: var(--ink-dim); display: flex; align-items: center; gap: 9px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+.status .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; opacity: .5; flex: none; }
+.status.live .dot { background: #A7E8A7; opacity: 1; box-shadow: 0 0 10px #A7E8A7; }
+.status.demo .dot { background: #F2C14E; opacity: 1; }
+.status.stale .dot, .status.offline .dot { background: #F08A5D; opacity: 1; }
+
+.scene-name {
+  position: fixed; right: var(--edge-r); bottom: var(--above-ribbon);
+  font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 300;
+  font-size: clamp(15px, 1.5vw, 22px);
+  color: var(--ink-dim); text-shadow: 0 1px 0 rgba(0,0,0,.4);
+  transition: opacity .8s ease;
+}
+.ribbon-label {
+  position: fixed; left: var(--edge);
+  bottom: calc(clamp(54px, 9vh, 84px) + env(safe-area-inset-bottom, 0px));
+  font-size: clamp(12px, 1.05vw, 15px); color: var(--ink-dim);
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+
+/* Portrait: a tall screen in a window or on a wall. Type sizes follow the short side,
+   the copy sits in the lower third, credit and status stack at the top. */
+@media (orientation: portrait) {
+  :root { --above-ribbon: calc(clamp(96px, 11vh, 180px) + env(safe-area-inset-bottom, 0px)); }
+  .copy { right: var(--edge); max-width: none; }
+  .copy h1 { font-size: clamp(34px, 10vw, 120px); max-width: 11ch; }
+  .copy p { font-size: clamp(16px, 3.6vw, 36px); }
+  .credit, .status { font-size: clamp(12px, 2.4vw, 22px); }
+  .ribbon-label { font-size: clamp(12px, 2.2vw, 20px); bottom: calc(clamp(54px, 6.5vh, 110px) + env(safe-area-inset-bottom, 0px)); }
+  .scene-name { bottom: auto; top: calc(var(--top) + 5.5em); font-size: clamp(15px, 3vw, 28px); }
+}
+@media (max-width: 600px) { .credit { max-width: 46vw; } .scene-name { display: none; } }

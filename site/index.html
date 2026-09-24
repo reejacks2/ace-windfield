@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windfield — the ACE turbine, right now</title>
+<meta name="description" content="A live picture of the Ambition Community Energy wind turbine in Lawrence Weston, Bristol.">
+<meta name="theme-color" content="#0F141B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://ace-api.duckdns.org" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="vignette"></div>
+
+<div class="status connecting" id="status" role="status"><span class="dot"></span><span id="statusText">Connecting to the turbine…</span></div>
+
+<div class="credit">
+  <a href="https://ambitioncommunityenergy.org/">Ambition Community Energy</a><br>
+  Lawrence Weston, Bristol<br>
+  Data CC BY 4.0 · <a href="https://doi.org/10.5281/zenodo.22662372">Zenodo</a>
+</div>
+
+<div class="copy" id="copy" aria-live="polite">
+  <h1 id="headline">The turbine is waking up</h1>
+  <p id="sub">Reading the wind…</p>
+</div>
+<div class="scene-name" id="sceneName"></div>
+<div class="ribbon-label">Last 10 minutes of power</div>
+
+<noscript><div class="copy"><h1>Windfield needs JavaScript</h1><p>It draws the ACE turbine’s live data as moving art.</p></div></noscript>
+</body>
+</html>
