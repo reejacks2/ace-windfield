@@ -1,7 +1,7 @@
 // Scene rotation, real-sky compositing, crossfade, and the shared power ribbon.
 // A scene is { name, init(), update(dt, t), c, seconds?, ready?(), override?(), end?() } and
 // draws into its own canvas `c`. How it meets the sky is set in BLEND below:
-//   own    — paints its own sky (Twin, Meadow) or is a chart (Replay)
+//   own    — paints its own sky (Murmuration, Meadow), or is a map or chart (Lights, Replay)
 //   screen — light marks on dark: the real sky shows through the dark (Silk, Bloom, Drift)
 //   tint   — a full-colour field washed with the sky's light (Mosaic)
 import { view, motion, world, stageInfo, mkCanvas } from './stage.js';
@@ -10,7 +10,8 @@ import { pal, rgba } from '../lib/palette.js';
 import { skyNow } from '../lib/sky.js';
 import { state } from '../data/store.js';
 import { NOMINAL_KW, HISTORY, SCENE_SECONDS, FADE_SECONDS, PIN_SCENE } from '../config.js';
-import Twin from './twin.js';
+import Lights from './lights.js';
+import Murmuration from './murmuration.js';
 import Silk from './silk.js';
 import Meadow from './meadow.js';
 import Replay from './replay.js';
@@ -18,9 +19,9 @@ import Bloom from './bloom.js';
 import Drift from './drift.js';
 import Mosaic from './mosaic.js';
 
-const BLEND = new Map([[Twin, 'own'], [Meadow, 'own'], [Replay, 'own'], [Silk, 'screen'], [Bloom, 'screen'], [Drift, 'screen'], [Mosaic, 'tint']]);
-// The twin comes back between the others: it's the one that is *this* turbine.
-const ORDER = [Twin, Silk, Meadow, Twin, Replay, Bloom, Twin, Drift, Mosaic];
+const BLEND = new Map([[Lights, 'own'], [Murmuration, 'own'], [Meadow, 'own'], [Replay, 'own'], [Silk, 'screen'], [Bloom, 'screen'], [Drift, 'screen'], [Mosaic, 'tint']]);
+// Lights comes back between the others: it's the one about what the turbine does for people.
+const ORDER = [Lights, Murmuration, Silk, Lights, Replay, Meadow, Lights, Murmuration, Bloom, Lights, Drift, Mosaic];
 const BY_NAME = Object.fromEntries([...BLEND.keys()].map(s => [s.name.toLowerCase().replace(/\s+/g, '-'), s]));
 
 export function startScenes(stage, nameEl) {
@@ -143,7 +144,7 @@ export function startScenes(stage, nameEl) {
       ctx.globalAlpha = e; ctx.drawImage(layerB, 0, 0); ctx.globalAlpha = 1;
     }
     drawRibbon();
-    const label = cur.name + (cur === Twin && stageInfo.detail ? ` — ${stageInfo.detail}` : '');
+    const label = cur.name + (cur.detail && stageInfo.detail ? ` — ${stageInfo.detail}` : '');
     if (nameEl.textContent !== label) nameEl.textContent = label;
     requestAnimationFrame(frame);
   }

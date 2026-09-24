@@ -14,6 +14,7 @@ export const state = {
   season: null,    // { days, curtailedDays, gapMWh, windOnlyMWh, producedMWh, at }
   since: null,     // Date the turbine's availability record starts (asset configuration)
   replay: null,    // { t0, step, kw: Float32Array, avail: Float32Array, wind: Float32Array, at }
+  carbon: null,    // { g (gCO2/kWh, SW England forecast), index, from, gas (% of mix), at }
 };
 
 const subs = new Set();

@@ -81,13 +81,26 @@ as `wind − field`. Losses may overlap; don't sum them.
 - API down → `offline`: art keeps moving on synthetic wind, copy says "Waiting for the turbine",
   **never shows an invented number**. `?demo=1` fakes everything (dev only). `?story=<id>` pins.
 - Hidden tab → live poll drops to every 5 s, slow feeds to ≥ 5 min.
-- Run locally: `cd site && python -m http.server` (modules don't load from file://).
+- Run locally: `python tools/serve.py` → http://127.0.0.1:8765 (no-store headers, so edits show on reload;
+  modules don't load from file://). `node tools/flock_shape.mjs` measures the murmuration's spread.
+- Rebuild the map: `python tools/build_map.py` (Overpass is often overloaded: it retries across
+  mirrors, treats `remark` timeouts as failures, and caches each query in `tools/.cache/`).
+  2026-09-24: 3,568 buildings, 4,515 estimated homes, 266 streets, 276 KB.
 
 ## Scenes and features (2026.09.24)
-- **Live twin** (lead scene, returns between the others): real rotor rpm, heading, blade pitch,
-  under the real sky. Camera looks WEST (280°) from Lawrence Weston over the turbine toward the
-  Severn, so sunsets sit behind it all year — bearing is an assumption to confirm with ACE.
-  Rotor radius ≈ ½ hub height. Scene label shows `rpm · facing · blades°`.
+- **Live twin** — removed 2026.09.24 (looked literal; Reed's call). In git history at 387bd22.
+- **Lights of Lawrence Weston** (lead scene, returns between the others): real OSM rooftops
+  (`site/data/lawrence-weston.json`, baked by `tools/build_map.py`, ODbL — attribution shown in
+  the scene label). Lit home-by-home for kW ÷ 0.31, entering from the north-west (Avonmouth side);
+  pulses run along the streets; light spills past the edges when homes-now > homes on the map.
+  OSM has no Lawrence Weston boundary, so the map is a 2.5 × 1.7 km box around the suburb node
+  (51.5019 N, 2.6588 W) and copy says "homes on this map". Dwellings per building are ESTIMATED
+  (≈ 1 per 50 m² footprint for houses, 70 m² per floor for flats; garages/shops/schools = 0).
+  The turbine's exact position isn't placed — only "from the turbine, Avonmouth ↖".
+- **Murmuration**: boids on a spatial grid. Power → birds aloft (250 … 3,000); wind → speed and
+  sweep; direction → drift; a rise in power → a wave through the flock. Reeds bend downwind.
+  Tuned headlessly: at 2.5 MW the flock breathes ~50–165 px wide; calm ≈ 40 px. 1,500 birds max,
+  neighbour search on alternate frames. Lights: ~2 ms/frame (roofs batched into 6 brightness levels).
 - **Real sky** (`lib/sky.js`): sun/moon position and moon phase for 51.503 N, 2.672 W; checked
   against solstice/equinox noon altitudes (61.9° / 15.0° / 38.5°). Every scene composes over it;
   the art scenes get a dimmed copy so light strokes keep contrast in daylight.
@@ -99,15 +112,19 @@ as `wind − field`. Losses may overlap; don't sum them.
 - **Ghost ribbon**: solid = made, outline = wind-only available power, ember = the gap.
 - **Kiosk**: cursor hides after 3 s; double-click or `f` = fullscreen; `?kiosk=1` adds wake lock,
   04:00 Bristol reload, hides the sound button. PWA manifest + icon; `og.png` social card.
+- **Stories added**: *Clearing the air* — kg CO₂/h = kW × SW England grid intensity (NESO
+  Carbon Intensity API, region 11, FORECAST — no regional actuals; AVERAGE mix, so cautious vs
+  the marginal gas plant a turbine displaces). *Right now, that's…* — kettles (3 kW), cups of tea
+  (0.03 kWh), phone charges (15 Wh), e-bus km (1.2 kWh/km), one per showing.
 - **Sound** (opt-in): wind noise by wind speed, blade-pass swish at 3 × rpm / 60 Hz, a power drone.
-- URL params: `?scene=live-twin|silk|meadow|replay|bloom|drift|mosaic`, `?story=<id>`,
+- URL params: `?scene=lights-of-lawrence-weston|murmuration|silk|meadow|replay|bloom|drift|mosaic`, `?story=<id>`,
   `?demo=1`, `?kiosk=1`.
 
 ## Open questions for ACE
 - Blessing for 0.31 kW/home (used in "homes now" and "a day's electricity for N homes").
 - A £/MWh figure for earnings (`PRICE_GBP_PER_MWH`; the earnings line is hidden while null).
 - Enercon status-code labels for the codes listed above.
-- Which way the neighbours actually look at the turbine (camera bearing, now 280°).
+- The turbine's exact location (not reliably tagged in OSM), for placing it on the Lights map.
 
 ## Design decisions carried over
 - Palette stops keyed to kW/4200: dusk → estuary → sea green → gold → ember.

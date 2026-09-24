@@ -9,11 +9,13 @@ import energy from './energy.js';
 import curtailment from './curtailment.js';
 import weather from './weather.js';
 import lifetime from './lifetime.js';
+import air from './air.js';
+import everyday from './everyday.js';
 import { stageInfo } from '../scenes/stage.js';
 
-const ALL = { now, stopped, energy, curtailment, weather, lifetime };
+const ALL = { now, stopped, energy, curtailment, weather, lifetime, air, everyday };
 const LIVE = [stopped, now];                  // first ready one wins
-const SEQUENCE = ['live', energy, 'live', lifetime, 'live', curtailment, 'live', weather];
+const SEQUENCE = ['live', everyday, 'live', energy, 'live', air, 'live', lifetime, 'live', everyday, 'live', curtailment, 'live', weather];
 
 export function startStories({ copy, headline, sub, status, statusText }) {
   let slot = 0, current = null, shownHTML = '';

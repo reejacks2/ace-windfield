@@ -18,5 +18,5 @@ export const STORY_SECONDS = 12;
 const params = new URLSearchParams(location.search);
 export const FORCE_DEMO = params.get('demo') === '1';   // ?demo=1 — synthetic data, for development
 export const PIN_STORY = params.get('story');           // ?story=energy — hold one story
-export const PIN_SCENE = params.get('scene');           // ?scene=live-twin — hold one scene
+export const PIN_SCENE = params.get('scene');           // ?scene=lights — hold one scene
 export const KIOSK = params.get('kiosk') === '1';       // ?kiosk=1 — wall screen: wake lock, nightly reload, no sound button

@@ -118,6 +118,19 @@ async function refreshReplay() {
   state.replay = { t0, step, kw, avail, wind, at: Date.now() };
 }
 
+// Grid carbon intensity for South West England (NESO Carbon Intensity API, region 11).
+// Regional figures are forecasts — the API publishes no regional actuals. Refreshed half-hourly
+// like the source. Used to say how much CO2 the turbine's power displaces at the AVERAGE grid mix.
+async function refreshCarbon() {
+  const r = await fetch('https://api.carbonintensity.org.uk/regional/regionid/11', { headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error(`carbon HTTP ${r.status}`);
+  const d = (await r.json()).data?.[0]?.data?.[0];
+  const g = d?.intensity?.forecast;
+  if (!Number.isFinite(g)) return;
+  const mix = Object.fromEntries((d.generationmix || []).map(x => [x.fuel, x.perc]));
+  state.carbon = { g, index: d.intensity.index, from: d.from, gas: mix.gas ?? null, at: Date.now() };
+}
+
 function every(fn, ms, offset) {
   let failures = 0;
   const run = async () => {
@@ -137,6 +150,7 @@ export function startSlow() {
   every(refreshSeason, 3_600_000, 6_000);    // daily family: recommended refresh 3600 s
   every(refreshSince, 24 * 3_600_000, 7_500);
   every(refreshReplay, 6 * 3_600_000, 9_000);
+  every(refreshCarbon, 30 * 60_000, 10_500);
 }
 
 // ?demo=1 only — lets every story be seen without the API. Never used when the API is merely down.
@@ -148,6 +162,7 @@ function fakeSlow() {
   state.status = { main: 0, sub: 0, fault: false, warning: false, service: false, at: now };
   state.season = { days: 90, curtailedDays: 6, gapMWh: 14.2, windOnlyMWh: 1650, producedMWh: 1610, at: now };
   state.since = new Date('2023-03-29T00:00:00+01:00');
+  state.carbon = { g: 140, index: 'moderate', from: new Date(now).toISOString(), gas: 30, at: now };
   const len = 60 * 144, step = 600_000, kw = new Float32Array(len), avail = new Float32Array(len), wind = new Float32Array(len);
   for (let i = 0; i < len; i++) {
     const w = 6 + 4 * Math.sin(i / 300) + 2.5 * Math.sin(i / 37) + 1.5 * Math.sin(i / 7);
