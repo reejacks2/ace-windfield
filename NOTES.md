@@ -11,7 +11,8 @@ API: https://ace-api.duckdns.org (contract snapshots in `api/`, dated 2026.09.23
 2. Split `ace-windfield.html` into a small static site — **done 2026.09.23**, see Site below.
 3. Portrait layout, graceful API-down mode, polite polling with Retry-After backoff — **done
    2026.09.23** (portrait checked at phone size only; still needs a real wall-screen look).
-4. Deploy to GitHub Pages.
+4. Deploy to GitHub Pages — workflow `.github/workflows/pages.yml` publishes `site/` on push to
+   `main`. Repo: https://github.com/reejacks2/ace-windfield → https://reejacks2.github.io/ace-windfield/
 
 ## API facts (verified 2026.09.23)
 - Timestamps are epoch **microseconds** (schema says only `integer`).
